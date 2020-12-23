@@ -1,6 +1,7 @@
 #scrape
 import sys
 import os
+import errno
 import yfinance as yf
 import pandas as pd
 
@@ -26,7 +27,18 @@ def readFile(path):
                 data = lines[0]
         return data
     except FileNotFoundError:
+        print("File does not exist")
         return None
+
+def initStockData(stockName):
+    if not os.path.exists(os.cwd() + stockName):
+        try:
+            os.mkdir(os.cwd() + stockName)
+        except OSError:
+            raise
+        else:
+            print("Created directory for " + stockName + " data")
+
 
 def stockData(stockName):
     try:
@@ -42,17 +54,37 @@ def stockData(stockName):
     high = hist["High"]
     low = hist["Low"]
     vol = hist["Volume"]
-    print("Open Prices")
+    dates = hist.index
+    print("----------------------------------------")
+    print(stockName + " Open Prices")
+    print("----------------------------------------")
     print(hist["Open"])
     print("----------------------------------------")
-    print("Close Prices")
+    print(stockName + " Close Prices")
+    print("----------------------------------------")
     print(hist["Close"])
     print("----------------------------------------")
-    print("Volumes")
+    print(stockName + " Volumes")
+    print("----------------------------------------")
     print(hist["Volume"])
     print("----------------------------------------")
-    #HLPCT
-    #CHANGEPCT
+    return open, close, high, low, vol, dates
+
+def calculate_hlpct(dates, high, low):
+    hlpctData = []
+    for date, hi, lo in zip(dates, high, low):
+        hlpct = (hi - lo)/lo
+        hlpctData.append(hlpct)
+    dfHlpct = pd.DataFrame(hlpctData,index=dates,columns=["hlpct"])
+    return dfHlpct
+
+def calculate_pctchange(dates, open, close):
+    pctchangeData = []
+    for date, op, cl in zip(dates, open, close):
+        pctchange = (cl - op)/op
+        pctchangeData.append(pctchange)
+    dfPctchange = pd.DataFrame(pctchangeData,index=dates,columns=["pctchange"])
+    return dfPctchange
 
 if input == None:
     print("no input exiting!")
@@ -60,11 +92,31 @@ if input == None:
 
 if input.find("txt") == -1:
     try:
-        stockData(input)
+        open, close, high, low, vol, dates = stockData(input)
+        pctchange = calculate_pctchange(dates, high, low)
+        hlpct = calculate_hlpct(dates, high, low)
+        print(input + " hlpct")
+        print("----------------------")
+        print(hlpct)
+        print("----------------------")
+        print(input + " pctchange")
+        print("----------------------")
+        print(pctchange)
+        print("----------------------")
     except:
-        print("not string exiting")
+        print("not valid input exiting")
         sys.exit()
 else:
     data = readFile(input)
     for d in data:
-        stockData(d)
+        open, close, high, low, vol, dates = stockData(d)
+        pctchange = calculate_pctchange(dates, high, low)
+        hlpct = calculate_hlpct(dates, high, low)
+        print(d + " hlpct")
+        print("--------------------")
+        print(hlpct)
+        print("--------------------")
+        print(d + " pctchange")
+        print("--------------------")
+        print(pctchange)
+        print("--------------------")
