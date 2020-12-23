@@ -1,7 +1,6 @@
 #scrape
 import sys
 import os
-import errno
 import yfinance as yf
 import pandas as pd
 
@@ -38,7 +37,6 @@ def initStockData(stockName):
             raise
         else:
             print("Created directory for " + stockName + " data")
-
 
 def stockData(stockName):
     try:
