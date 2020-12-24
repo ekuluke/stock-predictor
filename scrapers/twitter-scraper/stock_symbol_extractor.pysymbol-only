@@ -1,0 +1,5 @@
+,# takes a csv file from barchart.com/stocks/ nasdaq indices and prases it to get a list of symbols
+0,import pandas as pd
+1,import sys
+2,df = pd.read_csv(sys.argv[0]
+3,"df.to_csv(sys.argv[0] + ""symbol-only"")"
