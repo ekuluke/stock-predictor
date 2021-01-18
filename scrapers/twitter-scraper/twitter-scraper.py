@@ -3,35 +3,39 @@
 import twint
 import datetime as dt
 import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
 import pandas as pd
 import sys
+import os
+
 
 fname = "symbol-only-nasdaq-100-index-12-10-2020(1).csv"
 def load_stock_symbols():
 
     stocks = []
     try:
-        if sys.argv[1] == "-c":
-            f = open("../c-" + fname, 'r')
-
+        if sys.argv[1] == "-n":
+            f = open(fname, 'r')
     except IndexError:
-        f = open("../symbol-only-nasdaq-100-index-12-10-2020(1).csv", 'r')
+            f = open("c-" + fname, 'r')
     for line in f:
-        stocks.append(line.split(','));
+        stocks.append(list(map(str.rstrip, line.split(','))));
     f.close()
     return stocks;
 # format = stock tag/identifier, company name
 
 def save_progress(stocks):
-    with open("../c-symbol-only-nasdaq-100-index-12-10-2020(1).csv", 'w') as f:
+    print(stocks)
+    with open("c-symbol-only-nasdaq-100-index-12-10-2020(1).csv", 'w') as f:
         for stock in stocks:
-            f.write(f"{stock[0]},{stock[1]}\n")
+            stock = list(map(str.rstrip, stock))
+            f.write(stock[0] + "," + stock[1] + "\n")
 
 def scrape_tweets(stocks):
     # Configure
     c = twint.Config()
     c.Lang='en'
-    stocks = stocks[1:]
         
 
     # Run
@@ -43,14 +47,64 @@ def scrape_tweets(stocks):
     for idx,stock in enumerate(stocks):
         save_progress(stocks[idx:])
         #c.Search = "{0} OR {1}".format(stock[0], stock[1])
-        print(stock[0])
-        c.Search=stock[0]
+        c.Search= "$" + stock[0]
         c.Since = "2020-01-01"
-        c.Until = "2020-12-20"
+        c.Until = "2021-01-01"
         c.Lang = "en"
-        c.Store_json = True
-        c.Output = "{0}_tweets.json".format(stock[0])
-        twint.run.Search(c)
+        c.Store_object = True
+        #c.Limit = 10
+        #c.Output = "tweet_data/{0}_tweets.json".format(stock[0])
+        try:
+            twint.run.Search(c)
+        except:
+            os.execv(sys.executable, ['python3'] + sys.argv)
+        tweets = twint.output.tweets_list
+        fname = "tweet_data/{0}.csv".format(stock[0])
+        try: 
+            f = open(fname, 'w')
+        except FileNotFoundError:
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
+            f = open(fname, 'w')
+
+        buf = {}
+        for tweet_data in tweets:
+            # Tokenization
+            print(tweet_data.tweet)
+            #tweet = nltk.word_tokenize(tweet_data.tweet)
+            tweet = tweet_data.tweet.split(' ')
+            # Remove stopwords(irrelevant words)
+            tweet_map = {} 
+
+            for word in tweet[:]: # iterate over copy while modifying original
+                if len(word) < 1:
+                    tweet.remove(word)
+                    continue
+                '''
+                stopwords = nltk.corpus.stopwords.words('english')
+                if word in stopwords:
+                    del temp_tweet[idx]
+                '''
+                # remove usertags
+                if word[0] == '@': 
+                    tweet.remove(word)
+                    continue
+                if word[0] == '$': 
+                    tweet.remove(word)
+                    continue
+                # remove urls
+                elif ('.com' in word or 'https://t.co/' in word):
+                    tweet.remove(word)
+            buf[tweet_data.datestamp + '-' + tweet_data.timestamp] = tweet
+            '''f.write(str(stock[0] + tweet_data.datestamp + '-' + tweet_data.timestamp + ','))
+            for word in tweet:
+                f.write(str(word) + ',')
+            f.write('\n')
+            '''
+        #pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+        print(buf, file=f)
+        f.close()
+
+
         
         # $TSLA/2020-1233 etc
         query = "${0} OR {1}".format(stock[0], stock[1]) 

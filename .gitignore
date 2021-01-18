@@ -1,2 +1,4 @@
 /scrapers/twitter-scraper/tweet_data
 *.json
+/scrapers/twitter-scraper/labelled_data
+
