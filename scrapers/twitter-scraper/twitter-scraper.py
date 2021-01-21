@@ -8,6 +8,7 @@ nltk.download('stopwords')
 import pandas as pd
 import sys
 import os
+import json
 
 
 fname = "symbol-only-nasdaq-100-index-12-10-2020(1).csv"
@@ -51,6 +52,7 @@ def scrape_tweets(stocks):
         c.Since = "2020-01-01"
         c.Until = "2021-01-01"
         c.Lang = "en"
+        c.Min_likes = 1
         c.Store_object = True
         #c.Limit = 10
         #c.Output = "tweet_data/{0}_tweets.json".format(stock[0])
@@ -59,13 +61,7 @@ def scrape_tweets(stocks):
         except:
             os.execv(sys.executable, ['python3'] + sys.argv)
         tweets = twint.output.tweets_list
-        fname = "tweet_data/{0}.csv".format(stock[0])
-        try: 
-            f = open(fname, 'w')
-        except FileNotFoundError:
-            os.makedirs(os.path.dirname(fname), exist_ok=True)
-            f = open(fname, 'w')
-
+        
         buf = {}
         for tweet_data in tweets:
             # Tokenization
@@ -92,7 +88,7 @@ def scrape_tweets(stocks):
                     tweet.remove(word)
                     continue
                 # remove urls
-                elif ('.com' in word or 'https://t.co/' in word):
+                if ('.com' in word or 'https://t.co/' in word):
                     tweet.remove(word)
             buf[tweet_data.datestamp + '-' + tweet_data.timestamp] = tweet
             '''f.write(str(stock[0] + tweet_data.datestamp + '-' + tweet_data.timestamp + ','))
@@ -101,7 +97,18 @@ def scrape_tweets(stocks):
             f.write('\n')
             '''
         #pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-        print(buf, file=f)
+        '''writer = csv.writer(f)
+        for key, value in buf.items():
+            writer.writerow([key, value])
+        '''
+        fname = "tweet_data/{0}.json".format(stock[0])
+        try: 
+            f = open(fname, 'w')
+        except FileNotFoundError:
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
+            f = open(fname, 'w')
+
+        json.dump(buf, f)
         f.close()
 
 
